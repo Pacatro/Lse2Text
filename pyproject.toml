@@ -1,7 +1,7 @@
 [project]
-name = "lse-translator"
+name = "lse2text"
 version = "0.1.0"
-description = "Add your description here"
+description = "Deep learning program that translates Spanish Sign Language (LSE) to text in real time."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -9,6 +9,7 @@ dependencies = [
   "matplotlib>=3.10.3",
   "numpy>=2.3.2",
   "pandas>=2.3.1",
+  "requests>=2.32.4",
   "scikit-learn>=1.7.1",
   "torch>=2.7.1",
   "torchmetrics>=1.8.0",
