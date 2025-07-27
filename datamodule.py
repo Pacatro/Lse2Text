@@ -16,6 +16,7 @@ class LSEDataModule(LightningDataModule):
         test_size: float = 0.2,
         val_size: float = 0.1,
         batch_size: int = 64,
+        image_size: tuple[int, int] = (256, 256),
     ):
         super().__init__()
         assert test_size + val_size <= 1.0
@@ -26,7 +27,7 @@ class LSEDataModule(LightningDataModule):
 
         self.img_transform = transforms.Compose(
             [
-                transforms.Resize((256, 256)),
+                transforms.Resize(image_size),
                 transforms.Grayscale(num_output_channels=1),
                 transforms.ToTensor(),
                 transforms.Normalize(mean=[0.5], std=[0.5]),
@@ -45,7 +46,6 @@ class LSEDataModule(LightningDataModule):
 
     def prepare_data(self):
         # Create folder if it doesn't exist
-        print("Creating dataset")
         Path(config.DATASET_DIR).mkdir(parents=True, exist_ok=True)
 
         # Download dataset
