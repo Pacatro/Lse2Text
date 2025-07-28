@@ -5,9 +5,13 @@ build/
 dist/
 wheels/
 *.egg-info
+lightning_logs/
 
 # Virtual environments
 .venv
 
 # Dataset folder
 data/
+
+# Images
+*.png

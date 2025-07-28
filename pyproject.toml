@@ -5,7 +5,7 @@ description = "Deep learning program that translates Spanish Sign Language (LSE)
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "lightning>=2.5.2",
+  "lightning[extra]>=2.5.2",
   "matplotlib>=3.10.3",
   "numpy>=2.3.2",
   "pandas>=2.3.1",

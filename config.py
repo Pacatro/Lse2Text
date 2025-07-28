@@ -4,5 +4,11 @@ ZIP_FILE = DATASET_DIR + "/spanish-sign-language-alphabet-static.zip"
 KAGGLE_URL = "https://www.kaggle.com/api/v1/datasets/download/kirlelea/spanish-sign-language-alphabet-static"
 
 # Dimensions
-IMG_WIDTH = 256
-IMG_HEIGHT = 256
+IMG_WIDTH = 224
+IMG_HEIGHT = 224
+IMG_CHANNELS = 1
+
+# Training
+EPOCHS = 5
+BATCH_SIZE = 32
+CLASSES = 19
