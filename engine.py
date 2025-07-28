@@ -1,7 +1,7 @@
 import lightning as L
 from torch import nn
 import torch
-from torchmetrics import MetricCollection, Accuracy
+from torchmetrics import MetricCollection, Accuracy, F1Score, Precision, Recall
 
 
 class Lse2TextModel(L.LightningModule):
@@ -23,6 +23,9 @@ class Lse2TextModel(L.LightningModule):
 
         self.metrics = MetricCollection(
             Accuracy(num_classes=self.num_classes, task="multiclass"),
+            Precision(num_classes=self.num_classes, task="multiclass"),
+            Recall(num_classes=self.num_classes, task="multiclass"),
+            F1Score(num_classes=self.num_classes, task="multiclass"),
         )
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:

@@ -21,10 +21,6 @@ def main():
         out_channels=config.IMG_CHANNELS,
     )
 
-    dm.setup("fit")
-    img, label = dm.train_dataset[0]
-    save_image(img, label, f"train_{label}.png")
-
     model = Lse2TextModel(
         model=VGG(
             input_channel=config.IMG_CHANNELS,
