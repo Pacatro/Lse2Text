@@ -21,48 +21,64 @@ class Lse2TextModel(L.LightningModule):
         self.weight_decay = weight_decay
         self.num_classes = num_classes
 
-        self.metrics = MetricCollection(
-            Accuracy(num_classes=self.num_classes, task="multiclass"),
-            Precision(num_classes=self.num_classes, task="multiclass"),
-            Recall(num_classes=self.num_classes, task="multiclass"),
-            F1Score(num_classes=self.num_classes, task="multiclass"),
+        metrics = MetricCollection(
+            {
+                "accuracy": Accuracy(num_classes=self.num_classes, task="multiclass"),
+                "precision": Precision(num_classes=self.num_classes, task="multiclass"),
+                "recall": Recall(num_classes=self.num_classes, task="multiclass"),
+                "f1": F1Score(num_classes=self.num_classes, task="multiclass"),
+            }
         )
 
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        logits = self.model(x)
-        preds = torch.softmax(input=logits, dim=1)
-        return logits, preds
+        self.val_metrics = metrics.clone(prefix="val/")
+        self.test_metrics = metrics.clone(prefix="test/")
 
-    def _step(self, batch: tuple[torch.Tensor, int], prefix: str) -> float:
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        logits = self.model(x)
+        return torch.argmax(logits, dim=1)
+
+    def _step(
+        self,
+        batch: tuple[torch.Tensor, int],
+        prefix: str,
+        metrics: MetricCollection | None = None,
+    ) -> float:
         x, y = batch
-        logits, preds = self(x)
+        logits = self.model(x)
+        preds = torch.argmax(logits, dim=1)
+
         loss = self.loss_fn(logits, y)
         self.log(f"{prefix}/loss", loss, prog_bar=True, on_epoch=True)
-        self.metrics.update(preds, y)
+
+        if metrics:
+            metrics.update(preds, y)
+
         return loss
 
     def training_step(self, batch: torch.Tensor) -> float:
         return self._step(batch, prefix="train")
 
     def validation_step(self, batch: torch.Tensor) -> float:
-        return self._step(batch, prefix="val")
+        return self._step(batch, prefix="val", metrics=self.val_metrics)
 
     def test_step(self, batch: torch.Tensor) -> float:
-        return self._step(batch, prefix="test")
+        return self._step(batch, prefix="test", metrics=self.test_metrics)
+
+    def predict_step(self, batch: torch.Tensor):
+        x, _ = batch
+        return self(x)
 
     def on_validation_epoch_start(self):
-        self.metrics.reset()
+        self.val_metrics.reset()
 
     def on_test_epoch_start(self):
-        self.metrics.reset()
+        self.test_metrics.reset()
 
     def on_validation_epoch_end(self):
-        metrics = self.metrics.compute()
-        self.log_dict(metrics)
+        self.log_dict(self.val_metrics.compute())
 
     def on_test_epoch_end(self):
-        metrics = self.metrics.compute()
-        self.log_dict(metrics)
+        self.log_dict(self.test_metrics.compute())
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(

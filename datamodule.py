@@ -17,10 +17,11 @@ class LSEDataModule(LightningDataModule):
         val_size: float = 0.1,
         batch_size: int = 64,
         image_size: tuple[int, int] = (256, 256),
-        out_channels: int = 1,
     ):
         super().__init__()
-        assert test_size + val_size <= 1.0
+        assert test_size + val_size <= 1.0, (
+            "You have to use a proper value for test and validations size"
+        )
         self.root_dir = root_dir
         self.test_size = test_size
         self.val_size = val_size
@@ -38,10 +39,11 @@ class LSEDataModule(LightningDataModule):
     def _split(self, dataset: datasets.ImageFolder) -> tuple[list, list, list]:
         idx = list(range(len(dataset)))
         train_idx, temp_idx = train_test_split(
-            idx, test_size=self.test_size, random_state=42
+            idx, test_size=self.val_size + self.test_size, random_state=42
         )
+        relative_test_size = self.test_size / (self.val_size + self.test_size)
         val_idx, test_idx = train_test_split(
-            temp_idx, test_size=self.val_size, random_state=42
+            temp_idx, test_size=relative_test_size, random_state=42
         )
         return train_idx, test_idx, val_idx
 
@@ -85,6 +87,8 @@ class LSEDataModule(LightningDataModule):
                 self.val_dataset = Subset(self.dataset, self.val_idx)
             case "test":
                 self.test_dataset = Subset(self.dataset, self.test_idx)
+            case "predict":
+                self.predict_dataset = Subset(self.dataset, self.test_idx)
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
@@ -107,6 +111,15 @@ class LSEDataModule(LightningDataModule):
     def test_dataloader(self) -> DataLoader:
         return DataLoader(
             self.test_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=4,
+            pin_memory=True,
+        )
+
+    def predict_dataloader(self) -> DataLoader:
+        return DataLoader(
+            self.predict_dataset,
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=4,
