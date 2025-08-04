@@ -4,7 +4,8 @@ Translate Spanish Sign Language (LSE) to text.
 
 ## Installation
 
->[!NOTE] You need to have [`uv`](https://docs.astral.sh/uv/) installed
+> [!NOTE]
+> You need to have [`uv`](https://docs.astral.sh/uv/) installed
 
 Follow the following steps to install the project:
 
