@@ -13,12 +13,26 @@ from engine import Lse2TextModel
 app = typer.Typer(no_args_is_help=True)
 
 
-@app.command()
+@app.command(
+    help="Train a model with the given parameters and save it to the given path."
+)
 def train(
-    out_model: Annotated[str, typer.Option("--out-model", "-o")] = "model.pt",
-    epochs: Annotated[int, typer.Option("--epochs", "-e")] = config.EPOCHS,
-    batch_size: Annotated[int, typer.Option("--batch-size", "-b")] = config.BATCH_SIZE,
-    debug: Annotated[bool, typer.Option("--debug", "-d")] = config.FAST_DEV_RUN,
+    out_model: Annotated[
+        str,
+        typer.Option("--out-model", "-o", help="Model path"),
+    ] = "model.pt",
+    epochs: Annotated[
+        int,
+        typer.Option("--epochs", "-e", help="Number of train epochs"),
+    ] = 10,
+    batch_size: Annotated[
+        int,
+        typer.Option("--batch-size", "-b", help="Batch size"),
+    ] = config.BATCH_SIZE,
+    debug: Annotated[
+        bool,
+        typer.Option("--debug", "-d", help="Run in debug mode"),
+    ] = config.FAST_DEV_RUN,
 ):
     metrics_folder = f"{config.METRICS_FOLDER}/test_metrics.csv"
 
@@ -76,10 +90,16 @@ def train(
         Path(checkpoint.best_model_path).rename(out_model)
 
 
-@app.command()
+@app.command(help="Runs inference with the given model.")
 def predict(
-    model_path: Annotated[str, typer.Option("--model-path", "-m")] = "model.pt",
-    max: int = 20,
+    model_path: Annotated[
+        str,
+        typer.Option("--model-path", "-m", help="Model path"),
+    ] = "model.pt",
+    max: Annotated[
+        int,
+        typer.Option("--max-predictions", "-p", help="Max predictions"),
+    ] = 20,
 ):
     cnn = CNN_01(input_channel=config.IMG_CHANNELS, out_channels=config.CLASSES)
 

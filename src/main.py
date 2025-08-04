@@ -19,7 +19,11 @@ def save_image(img: torch.Tensor, label: str, path: str):
 
 
 @app.callback()
-def main(verbose: Annotated[bool, typer.Option("--verbose", "-v")] = False):
+def main(
+    verbose: Annotated[
+        bool, typer.Option("--verbose", "-v", help="Verbose mode")
+    ] = True,
+):
     if verbose:
         config.state["verbose"] = True
 

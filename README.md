@@ -30,15 +30,15 @@ The program offers a command line interface (CLI) to train and predict LSE to te
  Usage: main.py [OPTIONS] COMMAND [ARGS]...
 
 ╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --verbose             -v                                                                                   │
+│ --verbose             -v        Verbose mode [default: True]                                               │
 │ --install-completion            Install completion for the current shell.                                  │
 │ --show-completion               Show completion for the current shell, to copy it or customize the         │
 │                                 installation.                                                              │
 │ --help                -h        Show this message and exit.                                                │
 ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ╭─ Commands ─────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ train                                                                                                      │
-│ predict                                                                                                    │
+│ train     Train a model with the given parameters and save it to the given path.                           │
+│ predict   Runs inference with the given model.                                                             │
 ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
@@ -50,10 +50,10 @@ Train a model with the given parameters and save it to the given path.
  Usage: main.py train [OPTIONS]
 
 ╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --out-model   -o      TEXT     [default: model.pt]                                                         │
-│ --epochs      -e      INTEGER  [default: 10]                                                               │
-│ --batch-size  -b      INTEGER  [default: 32]                                                               │
-│ --debug       -d                                                                                           │
+│ --out-model   -o      TEXT     Model path [default: model.pt]                                              │
+│ --epochs      -e      INTEGER  Number of train epochs [default: 10]                                        │
+│ --batch-size  -b      INTEGER  Batch size [default: 32]                                                    │
+│ --debug       -d               Run in debug mode                                                           │
 │ --help        -h               Show this message and exit.                                                 │
 ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
@@ -66,9 +66,9 @@ Run inference with the given model.
  Usage: main.py predict [OPTIONS]
 
 ╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --model-path  -m      TEXT     [default: model.pt]                                                         │
-│ --max                 INTEGER  [default: 20]                                                               │
-│ --help        -h               Show this message and exit.                                                 │
+│ --model-path       -m      TEXT     Model path [default: model.pt]                                         │
+│ --max-predictions  -p      INTEGER  Max predictions [default: 20]                                          │
+│ --help             -h               Show this message and exit.                                            │
 ╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 ```
 
