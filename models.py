@@ -2,16 +2,16 @@ import torch
 from torch import nn
 
 
-class VGG(nn.Module):
+class CNN_01(nn.Module):
     def __init__(
         self,
         input_channel: int,
-        out_shape: int,
-        hidden_units: list[int] = [64, 128, 256, 512],
+        out_channels: int,
+        hidden_units: list[int] = [128, 64, 32],
         adapt_size: tuple[int, int] = (7, 7),
         p: float = 0.5,
     ):
-        super(VGG, self).__init__()
+        super(CNN_01, self).__init__()
 
         layers = []
         input = input_channel
@@ -44,7 +44,7 @@ class VGG(nn.Module):
             nn.Linear(in_features=4096, out_features=4096),
             nn.ReLU(inplace=True),
             nn.Dropout(p),
-            nn.Linear(in_features=4096, out_features=out_shape),
+            nn.Linear(in_features=4096, out_features=out_channels),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

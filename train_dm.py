@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 import config
 
 
-class LSEDataModule(LightningDataModule):
+class TrainLseDataModule(LightningDataModule):
     def __init__(
         self,
         root_dir: str,
@@ -33,6 +33,7 @@ class LSEDataModule(LightningDataModule):
                 transforms.CenterCrop(image_size),
                 transforms.Grayscale(num_output_channels=1),
                 transforms.ToTensor(),
+                transforms.Normalize(mean=[0.5], std=[0.5]),
             ]
         )
 
@@ -59,11 +60,7 @@ class LSEDataModule(LightningDataModule):
         # Download dataset
         print("Downloading dataset...")
         resp = requests.get(config.KAGGLE_URL, stream=True)
-
-        if not resp.ok:
-            raise Exception(
-                f"Failed to download dataset with URL: {config.KAGGLE_URL}, status code: {resp.status_code}"
-            )
+        resp.raise_for_status()
 
         with open(config.ZIP_FILE, "wb") as f:
             for chunk in resp.iter_content(chunk_size=8192):
@@ -81,14 +78,14 @@ class LSEDataModule(LightningDataModule):
     def setup(self, stage: str):
         self.dataset = datasets.ImageFolder(self.root_dir, self.img_transform)
         self.train_idx, self.test_idx, self.val_idx = self._split(self.dataset)
-        match stage:
-            case "fit":
-                self.train_dataset = Subset(self.dataset, self.train_idx)
-                self.val_dataset = Subset(self.dataset, self.val_idx)
-            case "test":
-                self.test_dataset = Subset(self.dataset, self.test_idx)
-            case "predict":
-                self.predict_dataset = Subset(self.dataset, self.test_idx)
+
+        if stage in (None, "fit"):
+            self.train_dataset = Subset(self.dataset, self.train_idx)
+            self.val_dataset = Subset(self.dataset, self.val_idx)
+        if stage in (None, "test"):
+            self.test_dataset = Subset(self.dataset, self.test_idx)
+        if stage == "predict":
+            self.predict_dataset = Subset(self.dataset, self.test_idx)
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(
@@ -120,7 +117,7 @@ class LSEDataModule(LightningDataModule):
     def predict_dataloader(self) -> DataLoader:
         return DataLoader(
             self.predict_dataset,
-            batch_size=self.batch_size,
+            batch_size=1,
             shuffle=False,
             num_workers=4,
             pin_memory=True,

@@ -1,3 +1,7 @@
+# Debugging
+FAST_DEV_RUN = False
+INFERENCE = True
+
 # Dataset
 DATASET_DIR = "./data"
 ZIP_FILE = DATASET_DIR + "/spanish-sign-language-alphabet-static.zip"
@@ -9,6 +13,8 @@ IMG_HEIGHT = 224
 IMG_CHANNELS = 1
 
 # Training
-EPOCHS = 2
-BATCH_SIZE = 32
+EPOCHS = 10
+BATCH_SIZE = 32 if not INFERENCE else 1
 CLASSES = 19
+MONITORING_METRIC = "val/loss"
+METRICS_FOLDER = "metrics/"
