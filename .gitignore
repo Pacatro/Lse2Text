@@ -14,7 +14,7 @@ lightning_logs/
 data/
 
 # Images
-*.png
+# *.png
 
 # Models
 *.pt

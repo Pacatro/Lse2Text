@@ -1,6 +1,8 @@
+# Global state
+state = {"verbose": False}
+
 # Debugging
 FAST_DEV_RUN = False
-INFERENCE = True
 
 # Dataset
 DATASET_DIR = "./data"
@@ -14,7 +16,7 @@ IMG_CHANNELS = 1
 
 # Training
 EPOCHS = 10
-BATCH_SIZE = 32 if not INFERENCE else 1
+BATCH_SIZE = 32
 CLASSES = 19
 MONITORING_METRIC = "val/loss"
-METRICS_FOLDER = "metrics/"
+METRICS_FOLDER = "metrics"
