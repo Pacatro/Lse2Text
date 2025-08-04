@@ -22,7 +22,7 @@ def save_image(img: torch.Tensor, label: str, path: str):
 def main(
     verbose: Annotated[
         bool, typer.Option("--verbose", "-v", help="Verbose mode")
-    ] = True,
+    ] = False,
 ):
     if verbose:
         config.state["verbose"] = True

@@ -4,11 +4,13 @@ from pathlib import Path
 import pandas as pd
 import lightning as L
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
+import json
 
 import config
 from train_dm import TrainLseDataModule
-from models import CNN_01
+from models import CnnV1
 from engine import Lse2TextModel
+from evaluation import cross_validation
 
 app = typer.Typer(no_args_is_help=True)
 
@@ -33,6 +35,10 @@ def train(
         bool,
         typer.Option("--debug", "-d", help="Run in debug mode"),
     ] = config.FAST_DEV_RUN,
+    save_config: Annotated[
+        bool,
+        typer.Option("--save-config", "-s", help="Save config"),
+    ] = False,
 ):
     metrics_folder = f"{config.METRICS_FOLDER}/test_metrics.csv"
 
@@ -53,7 +59,7 @@ def train(
     )
 
     model = Lse2TextModel(
-        model=CNN_01(input_channel=config.IMG_CHANNELS, out_channels=config.CLASSES),
+        model=CnnV1(input_channel=config.IMG_CHANNELS, out_channels=config.CLASSES),
         num_classes=config.CLASSES,
     )
 
@@ -89,6 +95,13 @@ def train(
         df.to_csv(metrics_folder)
         Path(checkpoint.best_model_path).rename(out_model)
 
+    if save_config:
+        Path(config.CONFIG_FOLDER).mkdir(parents=True, exist_ok=True)
+        with open(
+            f"{config.CONFIG_FOLDER}/{model.model.__class__.__name__}.json", "w"
+        ) as f:
+            json.dump(model.config, f, indent=4)
+
 
 @app.command(help="Runs inference with the given model.")
 def predict(
@@ -101,7 +114,7 @@ def predict(
         typer.Option("--max-predictions", "-p", help="Max predictions"),
     ] = 20,
 ):
-    cnn = CNN_01(input_channel=config.IMG_CHANNELS, out_channels=config.CLASSES)
+    cnn = CnnV1(input_channel=config.IMG_CHANNELS, out_channels=config.CLASSES)
 
     dm = TrainLseDataModule(
         root_dir=config.DATASET_DIR,
@@ -124,3 +137,31 @@ def predict(
         pred = preds[i].item()
         _, label = dm.predict_dataset[i]
         print(f"Prediction: {classes[pred]} | Label: {classes[label]}")
+
+
+@app.command(help="Runs a K-Fold Cross Validation evaluation.")
+def eval(
+    k: Annotated[
+        int, typer.Option("--folds", "-k", help="The number of folds for CV")
+    ] = 5,
+    batch_size: Annotated[
+        int, typer.Option("--batch-size", "-b", help="Batch size")
+    ] = config.BATCH_SIZE,
+    epochs: Annotated[
+        int, typer.Option("--epochs", "-e", help="Number of train epochs")
+    ] = config.EPOCHS,
+):
+    dm = TrainLseDataModule(
+        root_dir=config.DATASET_DIR,
+        image_size=(config.IMG_WIDTH, config.IMG_HEIGHT),
+    )
+
+    results = cross_validation(
+        model_cls=CnnV1,
+        dm=dm,
+        k=k,
+        batch_size=batch_size,
+        epochs=epochs,
+    )
+
+    pd.DataFrame(results).to_csv(f"{config.METRICS_FOLDER}/cv_metrics.csv")

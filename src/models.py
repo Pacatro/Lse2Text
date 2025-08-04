@@ -2,7 +2,7 @@ import torch
 from torch import nn
 
 
-class CNN_01(nn.Module):
+class CnnV1(nn.Module):
     def __init__(
         self,
         input_channel: int,
@@ -11,7 +11,15 @@ class CNN_01(nn.Module):
         adapt_size: tuple[int, int] = (7, 7),
         p: float = 0.5,
     ):
-        super(CNN_01, self).__init__()
+        super(CnnV1, self).__init__()
+
+        self.config = {
+            "input_channel": input_channel,
+            "out_channels": out_channels,
+            "hidden_units": hidden_units,
+            "adapt_size": adapt_size,
+            "p": p,
+        }
 
         layers = []
         input = input_channel

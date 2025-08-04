@@ -29,6 +29,7 @@ class Lse2TextModel(L.LightningModule):
         self.lr = lr
         self.weight_decay = weight_decay
         self.num_classes = num_classes
+        self.config = model.config
 
         metrics = MetricCollection(
             {
