@@ -141,8 +141,6 @@ def predict(
     onnx_model = onnx.load(model_path)
     onnx.checker.check_model(onnx_model)
 
-    print("Model loaded")
-
     ort_session = ort.InferenceSession(model_path)
     inp_name = ort_session.get_inputs()[0].name
 

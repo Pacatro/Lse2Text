@@ -1,4 +1,5 @@
 import os
+import random
 import requests
 from pathlib import Path
 import zipfile
@@ -87,7 +88,9 @@ class TrainLseDataModule(LightningDataModule):
         if stage in (None, "test"):
             self.test_dataset = Subset(self.dataset, self.test_idx)
         if stage == "predict" and self.max_preds > 0:
-            predict_idx = list(range(self.max_preds))
+            # random.seed(42)
+            shuffled_test_idx = random.sample(self.test_idx, len(self.test_idx))
+            predict_idx = shuffled_test_idx[: self.max_preds]
             self.predict_dataset = Subset(self.dataset, predict_idx)
 
     def train_dataloader(self) -> DataLoader:
