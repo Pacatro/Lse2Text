@@ -21,15 +21,20 @@ class Lse2TextModel(L.LightningModule):
         loss_fn: nn.Module | None = None,
         lr: float = 1e-3,
         weight_decay: float = 1e-5,
+        cm_img_path: str = "cm.png",
     ):
         super().__init__()
-        self.save_hyperparameters(ignore=["model", "loss_fn"])
+        self.save_hyperparameters(ignore=["model", "loss_fn, cm_img_path"])
+        self.example_input_array = torch.randn(
+            (1, config.IMG_CHANNELS, config.IMG_WIDTH, config.IMG_HEIGHT)
+        )
         self.loss_fn = nn.CrossEntropyLoss() if not loss_fn else loss_fn
         self.model = model
         self.lr = lr
         self.weight_decay = weight_decay
         self.num_classes = num_classes
         self.config = model.config
+        self.cm_img_path = cm_img_path
 
         metrics = MetricCollection(
             {
@@ -109,7 +114,7 @@ class Lse2TextModel(L.LightningModule):
     def on_test_end(self):
         Path(config.METRICS_FOLDER).mkdir(parents=True, exist_ok=True)
         fig, _ = self.test_confmat.plot()
-        fig.savefig(f"{config.METRICS_FOLDER}/test_cm.png")
+        fig.savefig(Path(config.METRICS_FOLDER) / self.cm_img_path)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(

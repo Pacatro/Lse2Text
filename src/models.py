@@ -8,7 +8,7 @@ class CnnV1(nn.Module):
         input_channel: int,
         out_channels: int,
         hidden_units: list[int] = [128, 64, 32],
-        adapt_size: tuple[int, int] = (7, 7),
+        adapt_size: tuple[int, int] = (4, 4),
         p: float = 0.5,
     ):
         super(CnnV1, self).__init__()

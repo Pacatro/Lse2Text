@@ -17,5 +17,6 @@ data/
 
 # Models
 *.pt
+*.onnx
 config/
 lightning_logs/

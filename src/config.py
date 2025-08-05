@@ -19,10 +19,13 @@ IMG_HEIGHT = 224
 IMG_CHANNELS = 1
 
 # Training
-EPOCHS = 10
+EPOCHS = 50
 BATCH_SIZE = 32
 CLASSES = 19
 MONITORING_METRIC = "val/loss"
+
+# Inference
+MAX_PREDS = 20
 
 # Evaluation
 K = 5

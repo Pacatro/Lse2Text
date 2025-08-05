@@ -17,6 +17,7 @@ class TrainLseDataModule(LightningDataModule):
         val_size: float = 0.1,
         batch_size: int = 64,
         image_size: tuple[int, int] = (256, 256),
+        max_preds: int = 20,
     ):
         super().__init__()
         assert test_size + val_size <= 1.0, (
@@ -26,6 +27,7 @@ class TrainLseDataModule(LightningDataModule):
         self.test_size = test_size
         self.val_size = val_size
         self.batch_size = batch_size
+        self.max_preds = max_preds
 
         self.img_transform = transforms.Compose(
             [
@@ -84,8 +86,9 @@ class TrainLseDataModule(LightningDataModule):
             self.val_dataset = Subset(self.dataset, self.val_idx)
         if stage in (None, "test"):
             self.test_dataset = Subset(self.dataset, self.test_idx)
-        if stage == "predict":
-            self.predict_dataset = Subset(self.dataset, self.test_idx)
+        if stage == "predict" and self.max_preds > 0:
+            predict_idx = list(range(self.max_preds))
+            self.predict_dataset = Subset(self.dataset, predict_idx)
 
     def train_dataloader(self) -> DataLoader:
         return DataLoader(

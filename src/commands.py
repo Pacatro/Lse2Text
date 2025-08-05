@@ -1,4 +1,7 @@
 import typer
+import onnx
+import onnxruntime as ort
+import numpy as np
 from typing_extensions import Annotated
 from pathlib import Path
 import pandas as pd
@@ -21,12 +24,12 @@ app = typer.Typer(no_args_is_help=True)
 def train(
     out_model: Annotated[
         str,
-        typer.Option("--out-model", "-o", help="Model path"),
-    ] = "model.pt",
+        typer.Option("--out-model", "-o", help="Model path in ONNX format"),
+    ] = "model.onnx",
     epochs: Annotated[
         int,
         typer.Option("--epochs", "-e", help="Number of train epochs"),
-    ] = 10,
+    ] = config.EPOCHS,
     batch_size: Annotated[
         int,
         typer.Option("--batch-size", "-b", help="Batch size"),
@@ -39,18 +42,16 @@ def train(
         bool,
         typer.Option("--save-config", "-s", help="Save config"),
     ] = False,
+    metrics_path: Annotated[
+        str,
+        typer.Option("--metrics-path", "-m", help="Metrics path"),
+    ] = "test_metrics.csv",
+    cm_img_name: Annotated[
+        str,
+        typer.Option("--cm-img-name", "-c", help="Confusion matrix image name"),
+    ] = "cm.png",
 ):
-    metrics_folder = f"{config.METRICS_FOLDER}/test_metrics.csv"
-
-    if config.state["verbose"] and not debug:
-        print(f"IMG SIZE: ({config.IMG_WIDTH}, {config.IMG_HEIGHT})")
-        print(f"IMG CHANNELS: {config.IMG_CHANNELS}")
-        print(f"CLASSES: {config.CLASSES}")
-        print(f"EPOCHS: {epochs}")
-        print(f"BATCH SIZE: {batch_size}")
-        print(f"MONITORING METRIC: {config.MONITORING_METRIC}")
-        print(f"METRICS FOLDER: {metrics_folder}")
-        print(f"OUT MODEL: {out_model}")
+    metrics_folder = Path(config.METRICS_FOLDER) / metrics_path
 
     dm = TrainLseDataModule(
         root_dir=config.DATASET_DIR,
@@ -61,7 +62,19 @@ def train(
     model = Lse2TextModel(
         model=CnnV1(input_channel=config.IMG_CHANNELS, out_channels=config.CLASSES),
         num_classes=config.CLASSES,
+        cm_img_path=cm_img_name,
     )
+
+    if config.state["verbose"] and not debug:
+        print(f"IMG SIZE: ({config.IMG_WIDTH}, {config.IMG_HEIGHT})")
+        print(f"IMG CHANNELS: {config.IMG_CHANNELS}")
+        print(f"CLASSES: {config.CLASSES}")
+        print(f"EPOCHS: {epochs}")
+        print(f"BATCH SIZE: {batch_size}")
+        print(f"MONITORING METRIC: {config.MONITORING_METRIC}")
+        print(f"METRICS FOLDER: {metrics_folder}")
+        print(f"OUT MODEL: {out_model}")
+        print(f"MODEL:\n{model}\n")
 
     early_stopping = EarlyStopping(
         monitor=config.MONITORING_METRIC,
@@ -93,7 +106,7 @@ def train(
     if not debug:
         df = pd.DataFrame(metrics, index=["value"]).T
         df.to_csv(metrics_folder)
-        Path(checkpoint.best_model_path).rename(out_model)
+        model.to_onnx(file_path=out_model, export_params=True)
 
     if save_config:
         Path(config.CONFIG_FOLDER).mkdir(parents=True, exist_ok=True)
@@ -108,35 +121,45 @@ def predict(
     model_path: Annotated[
         str,
         typer.Option("--model-path", "-m", help="Model path"),
-    ] = "model.pt",
-    max: Annotated[
+    ] = "model.onnx",
+    max_preds: Annotated[
         int,
-        typer.Option("--max-predictions", "-p", help="Max predictions"),
-    ] = 20,
+        typer.Option("--max-preds", "-p", help="Max number of predictions"),
+    ] = config.MAX_PREDS,
 ):
-    cnn = CnnV1(input_channel=config.IMG_CHANNELS, out_channels=config.CLASSES)
-
     dm = TrainLseDataModule(
         root_dir=config.DATASET_DIR,
         image_size=(config.IMG_WIDTH, config.IMG_HEIGHT),
+        max_preds=max_preds,
     )
 
     dm.setup("predict")
     classes = dm.dataset.classes
 
-    model = Lse2TextModel.load_from_checkpoint(model_path, model=cnn)
-    trainer = L.Trainer()
-    preds = trainer.predict(model=model, datamodule=dm)
+    preds = []
+
+    onnx_model = onnx.load(model_path)
+    onnx.checker.check_model(onnx_model)
+
+    print("Model loaded")
+
+    ort_session = ort.InferenceSession(model_path)
+    inp_name = ort_session.get_inputs()[0].name
+
+    for batch in dm.predict_dataloader():
+        x, _ = batch
+        arr = x.cpu().numpy().astype(np.float32)
+        ort_out = ort_session.run(None, {inp_name: arr})[0]
+        preds.append(np.argmax(ort_out, axis=1).tolist())
 
     assert preds, "There are no predictions"
     assert len(preds) == len(dm.predict_dataset), (
         "Predictions and dataset sizes are different"
     )
 
-    for i in range(max):
-        pred = preds[i].item()
+    for i in range(max_preds):
         _, label = dm.predict_dataset[i]
-        print(f"Prediction: {classes[pred]} | Label: {classes[label]}")
+        print(f"Prediction: {classes[preds[i][0]]} | Label: {classes[label]}")
 
 
 @app.command(help="Runs a K-Fold Cross Validation evaluation.")
