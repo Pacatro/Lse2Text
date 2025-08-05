@@ -185,4 +185,4 @@ def eval(
         epochs=epochs,
     )
 
-    pd.DataFrame(results).to_csv(f"{config.METRICS_FOLDER}/cv_metrics.csv")
+    pd.DataFrame(results).mean().to_csv(f"{config.METRICS_FOLDER}/cv_results.csv")
