@@ -7,7 +7,8 @@ from pathlib import Path
 import pandas as pd
 import lightning as L
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
-import json
+from lightning.pytorch.loggers import MLFlowLogger
+# import json
 
 import config
 from train_dm import TrainLseDataModule
@@ -23,7 +24,7 @@ app = typer.Typer(no_args_is_help=True)
 )
 def train(
     out_model: Annotated[
-        str,
+        str | None,
         typer.Option("--out-model", "-o", help="Model path in ONNX format"),
     ] = "model.onnx",
     epochs: Annotated[
@@ -38,20 +39,26 @@ def train(
         bool,
         typer.Option("--debug", "-d", help="Run in debug mode"),
     ] = config.FAST_DEV_RUN,
-    save_config: Annotated[
+    metrics_filename: Annotated[
+        str | None,
+        typer.Option(
+            "--metrics-filename", "-m", help="Metrics filename without extension"
+        ),
+    ] = None,
+    use_logger: Annotated[
         bool,
-        typer.Option("--save-config", "-s", help="Save config"),
+        typer.Option("--use-logger", "-l", help="Use a logger"),
     ] = False,
-    metrics_path: Annotated[
-        str,
-        typer.Option("--metrics-path", "-m", help="Metrics path"),
-    ] = "test_metrics.csv",
-    cm_img_name: Annotated[
-        str,
-        typer.Option("--cm-img-name", "-c", help="Confusion matrix image name"),
-    ] = "cm.png",
 ):
-    metrics_folder = Path(config.METRICS_FOLDER) / metrics_path
+    if metrics_filename:
+        Path(config.METRICS_FOLDER).mkdir(parents=True, exist_ok=True)
+        metrics_folder = Path(config.METRICS_FOLDER) / f"{metrics_filename}.csv"
+
+    cm_img_name = (
+        Path(config.METRICS_FOLDER) / f"{metrics_filename}_cm.png"
+        if metrics_filename
+        else None
+    )
 
     dm = TrainLseDataModule(
         root_dir=config.DATASET_DIR,
@@ -62,7 +69,7 @@ def train(
     model = Lse2TextModel(
         model=CnnV1(input_channel=config.IMG_CHANNELS, out_channels=config.CLASSES),
         num_classes=config.CLASSES,
-        cm_img_path=cm_img_name,
+        cm_img_path=str(cm_img_name),
     )
 
     if config.state["verbose"] and not debug:
@@ -72,8 +79,7 @@ def train(
         print(f"EPOCHS: {epochs}")
         print(f"BATCH SIZE: {batch_size}")
         print(f"MONITORING METRIC: {config.MONITORING_METRIC}")
-        print(f"METRICS FOLDER: {metrics_folder}")
-        print(f"OUT MODEL: {out_model}")
+        print(f"USE LOGGER: {use_logger}")
         print(f"MODEL:\n{model}\n")
 
     early_stopping = EarlyStopping(
@@ -90,7 +96,14 @@ def train(
         save_last=True,
     )
 
+    train_logger = (
+        MLFlowLogger(experiment_name="lse2text", tracking_uri="file:./mlruns")
+        if use_logger
+        else None
+    )
+
     trainer = L.Trainer(
+        logger=train_logger,
         max_epochs=epochs,
         accelerator="auto",
         devices="auto",
@@ -103,17 +116,22 @@ def train(
     trainer.fit(model=model, datamodule=dm)
     metrics = trainer.test(model=model, datamodule=dm)
 
-    if not debug:
+    if not debug and metrics_folder:
         df = pd.DataFrame(metrics, index=["value"]).T
         df.to_csv(metrics_folder)
+
+    if out_model:
         model.to_onnx(file_path=out_model, export_params=True)
 
-    if save_config:
-        Path(config.CONFIG_FOLDER).mkdir(parents=True, exist_ok=True)
-        with open(
-            f"{config.CONFIG_FOLDER}/{model.model.__class__.__name__}.json", "w"
-        ) as f:
-            json.dump(model.config, f, indent=4)
+        if config.state["verbose"]:
+            print(f"MODEL SAVED TO {out_model}")
+
+    # if save_config:
+    #     Path(config.CONFIG_FOLDER).mkdir(parents=True, exist_ok=True)
+    #     with open(
+    #         f"{config.CONFIG_FOLDER}/{model.model.__class__.__name__}.json", "w"
+    #     ) as f:
+    #         json.dump(model.config, f, indent=4)
 
 
 @app.command(help="Runs inference with the given model.")

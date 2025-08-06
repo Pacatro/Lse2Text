@@ -2,7 +2,6 @@ import lightning as L
 from torch import nn
 import torch
 import config
-from pathlib import Path
 from torchmetrics import (
     MetricCollection,
     Accuracy,
@@ -21,7 +20,7 @@ class Lse2TextModel(L.LightningModule):
         loss_fn: nn.Module | None = None,
         lr: float = 1e-3,
         weight_decay: float = 1e-5,
-        cm_img_path: str = "cm.png",
+        cm_img_path: str | None = "cm.png",
     ):
         super().__init__()
         self.save_hyperparameters(ignore=["model", "loss_fn, cm_img_path"])
@@ -51,7 +50,11 @@ class Lse2TextModel(L.LightningModule):
             }
         )
 
-        self.test_confmat = ConfusionMatrix(task="multiclass", num_classes=num_classes)
+        self.test_confmat = (
+            ConfusionMatrix(task="multiclass", num_classes=num_classes)
+            if cm_img_path
+            else None
+        )
 
         self.val_metrics = metrics.clone(prefix="val/")
         self.test_metrics = metrics.clone(prefix="test/")
@@ -112,9 +115,9 @@ class Lse2TextModel(L.LightningModule):
         self.log_dict(self.test_metrics.compute())
 
     def on_test_end(self):
-        Path(config.METRICS_FOLDER).mkdir(parents=True, exist_ok=True)
-        fig, _ = self.test_confmat.plot()
-        fig.savefig(Path(config.METRICS_FOLDER) / self.cm_img_path)
+        if self.test_confmat:
+            fig, _ = self.test_confmat.plot()
+            fig.savefig(self.cm_img_path)
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(
