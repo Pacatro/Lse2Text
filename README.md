@@ -1,77 +1,108 @@
 # LSE to Text
 
-Translate Spanish Sign Language (LSE) to text.
+LSE to Text is a tool for translating Spanish Sign Language (LSE) images to text using deep learning. It provides a simple command line interface (CLI) for training models and running predictions.
+
+---
+
+## Features
+
+- Train a custom model on Spanish Sign Language alphabet images
+- Predict text from sign language images using a trained model
+- Easy CLI for training and inference
+- Configurable training parameters
+
+---
+
+## Requirements
+
+- Python 3.12+
+- [`uv`](https://docs.astral.sh/uv/) (for dependency management)
 
 ## Installation
 
-> [!NOTE]
-> You need to have [`uv`](https://docs.astral.sh/uv/) installed
-
-Follow the following steps to install the project:
-
 1. Clone this repository:
 
-  ```bash
-  git clone https://github.com/Pacatro/Lse2Text
-  cd Lse2Text
-  ```
+   ```terminal
+   git clone https://github.com/Pacatro/Lse2Text
+   cd Lse2Text
+   ```
 
-2. Run the program, this will install the dependencies and create a virtual environment:
+2. Run the program (this will install dependencies and create a virtual environment):
 
-  ```bash
-  uv run src/main.py
-  ```
+   ```terminal
+   uv run src/main.py
+   ```
+
+---
 
 ## Usage
 
-The program offers a command line interface (CLI) to train and predict LSE to text.
+The CLI offers two main commands: `train` and `predict`.
 
-```bash
- Usage: main.py [OPTIONS] COMMAND [ARGS]...
+### General CLI
 
-╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --verbose             -v        Verbose mode [default: True]                                               │
-│ --install-completion            Install completion for the current shell.                                  │
-│ --show-completion               Show completion for the current shell, to copy it or customize the         │
-│                                 installation.                                                              │
-│ --help                -h        Show this message and exit.                                                │
-╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
-╭─ Commands ─────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ train     Train a model with the given parameters and save it to the given path.                           │
-│ predict   Runs inference with the given model.                                                             │
-╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+```terminal
+Usage: main.py [OPTIONS] COMMAND [ARGS]...
+
+Options:
+  --verbose             -v        Verbose mode
+  --install-completion            Install completion for the current shell.
+  --show-completion               Show completion for the current shell, to copy it or customize the
+                                  installation.
+  --help                -h        Show this message and exit.
+
+Commands:
+  train     Train a model with the given parameters and save it to the given path.
+  predict   Runs inference with the given model.
+  eval      Runs a K-Fold Cross Validation evaluation.
 ```
 
-### Train command
+---
 
-Train a model with the given parameters and save it to the given path.
+### Train Command
 
-```bash
- Usage: main.py train [OPTIONS]
+Train a model with the given parameters and save it in [`ONNX`](https://onnx.ai/) format.
 
-╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --out-model   -o      TEXT     Model path [default: model.pt]                                              │
-│ --epochs      -e      INTEGER  Number of train epochs [default: 10]                                        │
-│ --batch-size  -b      INTEGER  Batch size [default: 32]                                                    │
-│ --debug       -d               Run in debug mode                                                           │
-│ --help        -h               Show this message and exit.                                                 │
-╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+```terminal
+Usage: main.py train [OPTIONS]
+
+Options:
+  --out-model         -o      TEXT     Model path in ONNX format [default: model.onnx]
+  --epochs            -e      INTEGER  Number of train epochs [default: 50]
+  --batch-size        -b      INTEGER  Batch size [default: 32]
+  --debug             -d               Run in debug mode
+  --metrics-filename  -m      TEXT     Metrics filename without extension [default: None]
+  --use-logger        -l               Use a logger
+  --help              -h               Show this message and exit.
 ```
 
-### Predict command
+**Example:**
+
+```terminal
+uv run src/main.py train -o model.onnx -e 20 -b 64
+```
+
+---
+
+### Predict Command
 
 Run inference with the given model.
 
-```bash
- Usage: main.py predict [OPTIONS]
+```terminal
+Usage: main.py predict [OPTIONS]
 
-╭─ Options ──────────────────────────────────────────────────────────────────────────────────────────────────╮
-│ --model-path       -m      TEXT     Model path [default: model.pt]                                         │
-│ --max-predictions  -p      INTEGER  Max predictions [default: 20]                                          │
-│ --help             -h               Show this message and exit.                                            │
-╰────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+Options:
+  --model-path  -m      TEXT     Model path [default: model.onnx]
+  --max-preds   -p      INTEGER  Max number of predictions [default: 20]
+  --help        -h               Show this message and exit.
 ```
 
-## Author/s
+**Example:**
+
+```terminal
+uv run src/main.py predict -m model.onnx -p 10
+```
+
+## Author
 
 Created by [**Paco Algar Muñoz**](https://github.com/Pacatro).

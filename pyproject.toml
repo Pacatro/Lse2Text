@@ -1,5 +1,5 @@
 [project]
-name = "lse2text"
+name = "Lse2Text"
 version = "0.1.0"
 description = "Deep learning program that translates Spanish Sign Language (LSE) to text in real time."
 readme = "README.md"
@@ -18,8 +18,7 @@ dependencies = [
   "torchvision>=0.22.1",
   "typer>=0.16.0",
 ]
+authors = [{ name = "Paco Algar Muñoz" }]
 
 [dependency-groups]
-dev = [
-    "mlflow>=3.2.0",
-]
+dev = ["mlflow>=3.2.0"]
