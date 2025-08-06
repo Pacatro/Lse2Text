@@ -9,6 +9,7 @@ from torchmetrics import (
     Precision,
     Recall,
     ConfusionMatrix,
+    Metric,
 )
 
 
@@ -67,7 +68,7 @@ class Lse2TextModel(L.LightningModule):
         batch: tuple[torch.Tensor, int],
         prefix: str,
         metrics: MetricCollection | None = None,
-        confmat: ConfusionMatrix | None = None,
+        confmat: Metric | None = None,
     ) -> float:
         x, y = batch
         logits = self(x)
@@ -85,18 +86,18 @@ class Lse2TextModel(L.LightningModule):
 
         return loss
 
-    def training_step(self, batch: torch.Tensor) -> float:
+    def training_step(self, batch: tuple[torch.Tensor, int]) -> float:
         return self._step(batch, prefix="train")
 
-    def validation_step(self, batch: torch.Tensor) -> float:
+    def validation_step(self, batch: tuple[torch.Tensor, int]) -> float:
         return self._step(batch, prefix="val", metrics=self.val_metrics)
 
-    def test_step(self, batch: torch.Tensor) -> float:
+    def test_step(self, batch: tuple[torch.Tensor, int]) -> float:
         return self._step(
             batch, prefix="test", metrics=self.test_metrics, confmat=self.test_confmat
         )
 
-    def predict_step(self, batch: torch.Tensor):
+    def predict_step(self, batch: tuple[torch.Tensor, int]):
         logits = self(batch[0])
         preds = torch.softmax(logits, dim=1).argmax(dim=1)
         return preds
@@ -106,7 +107,8 @@ class Lse2TextModel(L.LightningModule):
 
     def on_test_epoch_start(self):
         self.test_metrics.reset()
-        self.test_confmat.reset()
+        if self.test_confmat:
+            self.test_confmat.reset()
 
     def on_validation_epoch_end(self):
         self.log_dict(self.val_metrics.compute(), prog_bar=True)

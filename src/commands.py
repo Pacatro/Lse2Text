@@ -11,7 +11,7 @@ from lightning.pytorch.loggers import MLFlowLogger
 # import json
 
 import config
-from train_dm import TrainLseDataModule
+from lse_dm import LseDataModule
 from models import CnnV1
 from engine import Lse2TextModel
 from evaluation import cross_validation
@@ -60,7 +60,7 @@ def train(
         else None
     )
 
-    dm = TrainLseDataModule(
+    dm = LseDataModule(
         root_dir=config.DATASET_DIR,
         image_size=(config.IMG_WIDTH, config.IMG_HEIGHT),
         batch_size=batch_size,
@@ -145,7 +145,7 @@ def predict(
         typer.Option("--max-preds", "-p", help="Max number of predictions"),
     ] = config.MAX_PREDS,
 ):
-    dm = TrainLseDataModule(
+    dm = LseDataModule(
         root_dir=config.DATASET_DIR,
         image_size=(config.IMG_WIDTH, config.IMG_HEIGHT),
         max_preds=max_preds,
@@ -166,7 +166,7 @@ def predict(
         x, _ = batch
         arr = x.cpu().numpy().astype(np.float32)
         ort_out = ort_session.run(None, {inp_name: arr})[0]
-        preds.append(np.argmax(ort_out, axis=1).tolist())
+        preds.append(np.argmax(np.array(ort_out), axis=1).tolist())
 
     assert preds, "There are no predictions"
     assert len(preds) == len(dm.predict_dataset), (
@@ -190,7 +190,7 @@ def eval(
         int, typer.Option("--epochs", "-e", help="Number of train epochs")
     ] = config.EPOCHS,
 ):
-    dm = TrainLseDataModule(
+    dm = LseDataModule(
         root_dir=config.DATASET_DIR,
         image_size=(config.IMG_WIDTH, config.IMG_HEIGHT),
     )

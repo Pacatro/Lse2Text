@@ -4,15 +4,16 @@ import lightning as L
 from typing import Type
 from torch import nn
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
+import numpy as np
 
 from engine import Lse2TextModel
 import config
-from train_dm import TrainLseDataModule
+from lse_dm import LseDataModule
 
 
 def cross_validation(
     model_cls: Type[nn.Module],
-    dm: TrainLseDataModule,
+    dm: LseDataModule,
     k: int = config.K,
     batch_size: int = config.BATCH_SIZE,
     epochs: int = config.EPOCHS,
@@ -25,14 +26,14 @@ def cross_validation(
 
     ds = dm.dataset
 
-    idxs = list(range(len(ds)))
+    idxs = np.arange(len(ds))
 
     for fold, (train_idx, val_idx) in enumerate(kf.split(idxs)):
         if config.state["verbose"]:
             print(f"Fold {fold + 1}/{k}")
 
-        ds_train = Subset(ds, train_idx)
-        ds_val = Subset(ds, val_idx)
+        ds_train = Subset(ds, train_idx.tolist())
+        ds_val = Subset(ds, val_idx.tolist())
 
         train_loader = DataLoader(
             ds_train, batch_size=batch_size, shuffle=True, num_workers=4

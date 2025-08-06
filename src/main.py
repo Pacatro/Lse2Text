@@ -21,7 +21,8 @@ def save_image(img: torch.Tensor, label: str, path: str):
 @app.callback()
 def main(
     verbose: Annotated[
-        bool, typer.Option("--verbose", "-v", help="Verbose mode")
+        bool,
+        typer.Option("--verbose", "-v", help="Verbose mode"),
     ] = False,
 ):
     if verbose:

@@ -10,7 +10,7 @@ from sklearn.model_selection import train_test_split
 import config
 
 
-class TrainLseDataModule(LightningDataModule):
+class LseDataModule(LightningDataModule):
     def __init__(
         self,
         root_dir: str,
