@@ -5,18 +5,19 @@ description = "Deep learning program that translates Spanish Sign Language (LSE)
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
+  "fastapi[all]>=0.116.1",
   "lightning[extra]>=2.5.2",
   "matplotlib>=3.10.3",
   "numpy>=2.3.2",
   "onnx>=1.18.0",
   "onnxruntime>=1.22.1",
   "pandas>=2.3.1",
+  "pydantic>=2.11.7",
   "requests>=2.32.4",
   "scikit-learn>=1.7.1",
   "torch>=2.7.1",
   "torchmetrics[visual]>=1.8.0",
   "torchvision>=0.22.1",
-  "typer>=0.16.0",
 ]
 authors = [{ name = "Paco Algar Muñoz" }]
 
