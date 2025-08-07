@@ -3,28 +3,15 @@ from torch import nn
 
 
 class CnnV1(nn.Module):
-    def __init__(
-        self,
-        input_channel: int,
-        out_channels: int,
-        hidden_units: list[int] = [128, 64, 32],
-        adapt_size: tuple[int, int] = (4, 4),
-        p: float = 0.5,
-    ):
+    def __init__(self, config: dict):
         super(CnnV1, self).__init__()
 
-        self.config = {
-            "input_channel": input_channel,
-            "out_channels": out_channels,
-            "hidden_units": hidden_units,
-            "adapt_size": adapt_size,
-            "p": p,
-        }
+        self.config = config
 
         layers = []
-        input = input_channel
+        input = self.config["input_channel"]
 
-        for h in hidden_units:
+        for h in self.config["hidden_units"]:
             layers += [
                 nn.Conv2d(
                     in_channels=input,
@@ -41,18 +28,22 @@ class CnnV1(nn.Module):
 
         self.features = nn.Sequential(*layers)
 
-        self.adapt_pool = nn.AdaptiveAvgPool2d(adapt_size)
-        flat_dim = hidden_units[-1] * adapt_size[0] * adapt_size[1]
+        self.adapt_pool = nn.AdaptiveAvgPool2d(self.config["adapt_size"])
+        flat_dim = (
+            self.config["hidden_units"][-1]
+            * self.config["adapt_size"][0]
+            * self.config["adapt_size"][1]
+        )
 
         self.classifier = nn.Sequential(
             nn.Flatten(),
             nn.Linear(flat_dim, 4096),
             nn.ReLU(inplace=True),
-            nn.Dropout(p),
+            nn.Dropout(p=self.config["p"]),
             nn.Linear(in_features=4096, out_features=4096),
             nn.ReLU(inplace=True),
-            nn.Dropout(p),
-            nn.Linear(in_features=4096, out_features=out_channels),
+            nn.Dropout(p=self.config["p"]),
+            nn.Linear(in_features=4096, out_features=self.config["out_channels"]),
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:

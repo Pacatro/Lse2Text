@@ -6,30 +6,37 @@ from torch import nn
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 import numpy as np
 
-from engine import Lse2TextModel
-import config
-from lse_dm import LseDataModule
+from app.core.engine import Lse2TextModel
+from app.core.config import settings
+from app.core.lse_dm import LseDataModule
 
 
 def cross_validation(
     model_cls: Type[nn.Module],
     dm: LseDataModule,
-    k: int = config.K,
-    batch_size: int = config.BATCH_SIZE,
-    epochs: int = config.EPOCHS,
+    k: int = settings.k,
+    batch_size: int = settings.batch_size,
+    epochs: int = settings.epochs,
 ) -> list[dict[str, float]]:
     results = []
 
-    kf = KFold(n_splits=5, shuffle=True, random_state=42)
+    kf = KFold(n_splits=settings.k, shuffle=True, random_state=42)
 
     dm.setup("fit")
 
     ds = dm.dataset
-
     idxs = np.arange(len(ds))
 
+    model_config = {
+        "input_channel": settings.img_channels,
+        "out_channels": settings.classes,
+        "hidden_units": [128, 64, 32],
+        "adapt_size": (4, 4),
+        "p": 0.5,
+    }
+
     for fold, (train_idx, val_idx) in enumerate(kf.split(idxs)):
-        if config.state["verbose"]:
+        if settings.verbose:
             print(f"Fold {fold + 1}/{k}")
 
         ds_train = Subset(ds, train_idx.tolist())
@@ -42,22 +49,17 @@ def cross_validation(
             ds_val, batch_size=batch_size, shuffle=False, num_workers=4
         )
 
-        model = Lse2TextModel(
-            model=model_cls(
-                input_channel=config.IMG_CHANNELS, out_channels=config.CLASSES
-            ),
-            num_classes=config.CLASSES,
-        )
+        model = Lse2TextModel(model=model_cls, config=model_config)
 
         early_stopping = EarlyStopping(
-            monitor=config.MONITORING_METRIC,
+            monitor=settings.monitoring_metric,
             patience=3,
             mode="min",
-            verbose=config.state["verbose"],
+            verbose=settings.verbose,
         )
 
         checkpoint = ModelCheckpoint(
-            monitor=config.MONITORING_METRIC,
+            monitor=settings.monitoring_metric,
             mode="min",
             filename="best-model",
             save_last=True,
@@ -69,7 +71,7 @@ def cross_validation(
             devices="auto",
             log_every_n_steps=10,
             callbacks=[early_stopping, checkpoint],
-            enable_model_summary=config.state["verbose"],
+            enable_model_summary=settings.verbose,
         )
 
         trainer.fit(
@@ -80,7 +82,7 @@ def cross_validation(
         metrics = trainer.validate(model=model, dataloaders=val_loader)
         results.append(metrics[0])
 
-    if config.state["verbose"]:
+    if settings.verbose:
         print(f"Results:\n{results}")
 
     return results

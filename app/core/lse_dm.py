@@ -7,7 +7,8 @@ from torch.utils.data import DataLoader, Subset
 from torchvision import transforms, datasets
 from lightning import LightningDataModule
 from sklearn.model_selection import train_test_split
-import config
+
+from app.core.config import settings
 
 
 class LseDataModule(LightningDataModule):
@@ -53,7 +54,7 @@ class LseDataModule(LightningDataModule):
 
     def prepare_data(self):
         # Create folder if it doesn't exist
-        dataset_dir = Path(config.DATASET_DIR)
+        dataset_dir = Path(settings.dataset_dir)
 
         if dataset_dir.exists():
             return
@@ -62,21 +63,21 @@ class LseDataModule(LightningDataModule):
 
         # Download dataset
         print("Downloading dataset...")
-        resp = requests.get(config.KAGGLE_URL, stream=True)
+        resp = requests.get(settings.kaggle_url, stream=True)
         resp.raise_for_status()
 
-        with open(config.ZIP_FILE, "wb") as f:
+        with open(settings.zip_file, "wb") as f:
             for chunk in resp.iter_content(chunk_size=8192):
                 f.write(chunk)
 
         print("Dataset downloaded successfully.")
 
         # Unzip
-        with zipfile.ZipFile(config.ZIP_FILE, "r") as zip_ref:
-            zip_ref.extractall(config.DATASET_DIR)
+        with zipfile.ZipFile(settings.zip_file, "r") as zip_ref:
+            zip_ref.extractall(settings.dataset_dir)
             print("Dataset extracted successfully.")
 
-        os.remove(config.ZIP_FILE)
+        os.remove(settings.zip_file)
 
     def setup(self, stage: str):
         self.dataset = datasets.ImageFolder(self.root_dir, self.img_transform)
@@ -100,6 +101,7 @@ class LseDataModule(LightningDataModule):
             shuffle=True,
             num_workers=4,
             pin_memory=True,
+            persistent_workers=True,
         )
 
     def val_dataloader(self) -> DataLoader:
@@ -109,6 +111,7 @@ class LseDataModule(LightningDataModule):
             shuffle=False,
             num_workers=4,
             pin_memory=True,
+            persistent_workers=True,
         )
 
     def test_dataloader(self) -> DataLoader:
@@ -118,6 +121,7 @@ class LseDataModule(LightningDataModule):
             shuffle=False,
             num_workers=4,
             pin_memory=True,
+            persistent_workers=True,
         )
 
     def predict_dataloader(self) -> DataLoader:

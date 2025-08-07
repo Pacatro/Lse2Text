@@ -1,7 +1,8 @@
+from pathlib import Path
+from typing import Type
 import lightning as L
 from torch import nn
 import torch
-import config
 from torchmetrics import (
     MetricCollection,
     Accuracy,
@@ -12,47 +13,49 @@ from torchmetrics import (
     Metric,
 )
 
+from app.core.config import settings
+
 
 class Lse2TextModel(L.LightningModule):
     def __init__(
         self,
-        model: nn.Module,
-        num_classes: int,
+        model: Type[nn.Module],
+        config: dict,
         loss_fn: nn.Module | None = None,
         lr: float = 1e-3,
         weight_decay: float = 1e-5,
-        cm_img_path: str | None = "cm.png",
+        cm_img_path: Path | None = None,
     ):
         super().__init__()
         self.save_hyperparameters(ignore=["model", "loss_fn, cm_img_path"])
         self.example_input_array = torch.randn(
-            (1, config.IMG_CHANNELS, config.IMG_WIDTH, config.IMG_HEIGHT)
+            (1, settings.img_channels, settings.img_width, settings.img_height)
         )
         self.loss_fn = nn.CrossEntropyLoss() if not loss_fn else loss_fn
-        self.model = model
+        self.model = model(config)
         self.lr = lr
         self.weight_decay = weight_decay
-        self.num_classes = num_classes
-        self.config = model.config
+        self.config = config
+        self.num_classes: int = int(self.config["out_channels"])
         self.cm_img_path = cm_img_path
 
         metrics = MetricCollection(
             {
-                "acc": Accuracy(task="multiclass", num_classes=num_classes),
+                "acc": Accuracy(task="multiclass", num_classes=self.num_classes),
                 "precision": Precision(
-                    task="multiclass", average="macro", num_classes=num_classes
+                    task="multiclass", average="macro", num_classes=self.num_classes
                 ),
                 "recall": Recall(
-                    task="multiclass", average="macro", num_classes=num_classes
+                    task="multiclass", average="macro", num_classes=self.num_classes
                 ),
                 "f1": F1Score(
-                    task="multiclass", average="macro", num_classes=num_classes
+                    task="multiclass", average="macro", num_classes=self.num_classes
                 ),
             }
         )
 
         self.test_confmat = (
-            ConfusionMatrix(task="multiclass", num_classes=num_classes)
+            ConfusionMatrix(task="multiclass", num_classes=self.num_classes)
             if cm_img_path
             else None
         )
