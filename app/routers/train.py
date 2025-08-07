@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from lightning.pytorch.callbacks import EarlyStopping, ModelCheckpoint
 from lightning.pytorch.loggers import MLFlowLogger
 import pandas as pd
+from datetime import datetime
 
 from app.core.config import settings
 from app.core.lse_dm import LseDataModule
@@ -17,6 +18,7 @@ router = APIRouter()
 @router.post("/train")
 async def train(request: TrainRequest):
     metrics_folder = None
+
     if request.metrics_filename:
         Path(settings.metrics_folder).mkdir(parents=True, exist_ok=True)
         metrics_folder = (
@@ -87,9 +89,11 @@ async def train(request: TrainRequest):
         df = pd.DataFrame(metrics, index=["value"]).T
         df.to_csv(metrics_folder)
 
-    if request.out_model and not request.debug:
+    out_model = f"{model.model.__class__.__name__}_{datetime.now().timestamp()}.onnx"
+
+    if out_model and not request.debug:
         Path(settings.models_folder).mkdir(parents=True, exist_ok=True)
-        file_path = Path(settings.models_folder) / request.out_model
+        file_path = Path(settings.models_folder) / out_model
 
         if file_path.suffix != ".onnx":
             file_path = file_path.with_suffix(".onnx")

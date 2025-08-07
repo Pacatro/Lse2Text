@@ -6,6 +6,7 @@ dist/
 wheels/
 *.egg-info
 mlruns/
+*.task
 
 # Virtual environments
 .venv

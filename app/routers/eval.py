@@ -11,7 +11,7 @@ router = APIRouter()
 
 
 @router.post("/eval")
-def eval(request: EvalRequest):
+async def eval(request: EvalRequest):
     dm = LseDataModule(
         root_dir=settings.dataset_dir,
         image_size=(settings.img_width, settings.img_height),

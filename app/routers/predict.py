@@ -1,43 +1,87 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, File, UploadFile
 from pathlib import Path
+from fastapi.responses import JSONResponse
+from torchvision import transforms
 import onnx
 import onnxruntime as ort
 import numpy as np
-# import json
+import cv2
+from PIL import Image
 
 from app.core.config import settings
+from app.core.hands import select_hand
 from app.core.lse_dm import LseDataModule
-from app.models.schemas import PredictRequest
 
 router = APIRouter()
 
 
-@router.post("/predict")
-def predict(request: PredictRequest):
-    if request.max_preds <= 0:
+def get_last_model(models_folder: str) -> Path:
+    saving_models_folder = Path(models_folder)
+
+    if not saving_models_folder.exists():
         raise HTTPException(
-            status_code=400,
-            detail=f"max_preds must be greater than 0 (got {request.max_preds})",
+            status_code=404, detail=f"There are no models in {settings.models_folder}"
         )
 
-    model_path = Path(settings.models_folder) / request.model_name
+    models = [f for f in saving_models_folder.iterdir() if f.is_file()]
+
+    if len(models) == 0:
+        raise HTTPException(
+            status_code=404, detail=f"There are no models in {settings.models_folder}"
+        )
+
+    last_model_path = sorted(models, key=lambda f: f.name.split("_")[-1])[-1]
+
+    model_path = Path(settings.models_folder) / last_model_path.name
+
+    if not model_path.suffix == ".onnx":
+        raise HTTPException(
+            status_code=400, detail=f"Model {model_path} is not an ONNX model"
+        )
+
+    return model_path
+
+
+@router.post("/predict")
+async def predict(img: UploadFile = File(..., alias="file")) -> JSONResponse:
+    if img is None:
+        raise HTTPException(
+            status_code=400, detail="Image file is required for prediction"
+        )
+
+    model_path = get_last_model(settings.models_folder)
+
     print(f"Loading model from {model_path}")
+
+    img_transform = transforms.Compose(
+        [
+            transforms.Resize((settings.img_width, settings.img_height)),
+            transforms.CenterCrop((settings.img_width, settings.img_height)),
+            transforms.Grayscale(num_output_channels=1),
+            transforms.ToTensor(),
+            transforms.Normalize(mean=[0.5], std=[0.5]),
+        ]
+    )
+
+    img_content = await img.read()
+
+    img_bgr = cv2.imdecode(np.frombuffer(img_content, np.uint8), cv2.IMREAD_COLOR)
+
+    if img_bgr is None:
+        raise HTTPException(status_code=400, detail="Invalid image file")
+
+    crop_img = select_hand(img_bgr, (settings.img_width, settings.img_height))
+
+    cv2.imwrite("tmp.jpg", crop_img)  # For debugging
+
+    image = Image.fromarray(crop_img).convert("RGB")
+
+    tensor_image = img_transform(image).unsqueeze(0)
 
     if not model_path.exists():
         raise HTTPException(
             status_code=404, detail=f"Model path {model_path} not found"
         )
-
-    dm = LseDataModule(
-        root_dir=settings.dataset_dir,
-        image_size=(settings.img_width, settings.img_height),
-        max_preds=request.max_preds,
-    )
-
-    dm.setup("predict")
-    classes = dm.dataset.classes
-
-    preds = {}
 
     onnx_model = onnx.load(model_path)
     onnx.checker.check_model(onnx_model)
@@ -45,15 +89,20 @@ def predict(request: PredictRequest):
     ort_session = ort.InferenceSession(model_path)
     inp_name = ort_session.get_inputs()[0].name
 
-    for batch in dm.predict_dataloader():
-        x, y = batch
-        arr = x.cpu().numpy().astype(np.float32)
+    x = tensor_image.cpu().numpy().astype(np.float32)
 
-        logits = ort_session.run(None, {inp_name: arr})[0]
-        pred = np.argmax(np.array(logits), axis=1).tolist()
-        label = classes[y.item()]
-        preds[label] = classes[pred[0]]
+    logits = np.array(ort_session.run(None, {inp_name: x})[0])
+    pred = np.argmax(logits, axis=1).tolist()
 
-    assert preds, "There are no predictions"
+    dm = LseDataModule(
+        root_dir=settings.dataset_dir,
+        image_size=(settings.img_width, settings.img_height),
+    )
 
-    return preds
+    dm.setup("predict")
+
+    classes = dm.dataset.classes
+
+    assert pred, "There are no predictions"
+
+    return JSONResponse({"pred": classes[pred[0]], "logits": logits.tolist()})
