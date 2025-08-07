@@ -7,13 +7,13 @@ import numpy as np
 
 from app.core.config import settings
 from app.core.lse_dm import LseDataModule
-from app.models.schemas import InferenceRequest
+from app.models.schemas import PredictRequest
 
 router = APIRouter()
 
 
 @router.post("/predict")
-def predict(request: InferenceRequest) -> dict[str, str]:
+def predict(request: PredictRequest):
     if request.max_preds <= 0:
         raise HTTPException(
             status_code=400,

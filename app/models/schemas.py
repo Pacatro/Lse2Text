@@ -1,5 +1,6 @@
-# Define a Pydantic model for the request body
 from pydantic import BaseModel
+
+from app.core.config import settings
 
 
 class TrainRequest(BaseModel):
@@ -9,21 +10,21 @@ class TrainRequest(BaseModel):
     """
 
     out_model: str = "model.onnx"
-    epochs: int = 10
-    batch_size: int = 32
-    debug: bool = False
+    epochs: int = settings.epochs
+    batch_size: int = settings.batch_size
+    debug: bool = settings.fast_dev_run
     metrics_filename: str | None = None
     use_logger: bool = False
 
 
-class InferenceRequest(BaseModel):
+class PredictRequest(BaseModel):
     """Inference request parameters.
     Defines the expected structure of the request body for the inference endpoint.
     It includes the model's name and the maximum number of predictions to return.
     """
 
     model_name: str = "model.onnx"
-    max_preds: int = 20
+    max_preds: int = settings.max_preds
 
 
 class EvalRequest(BaseModel):
@@ -32,6 +33,6 @@ class EvalRequest(BaseModel):
     It includes optional parameters for the number of folds, batch size, and number of epochs.
     """
 
-    k: int = 5
-    batch_size: int = 32
-    epochs: int = 10
+    k: int = settings.k
+    batch_size: int = settings.batch_size
+    epochs: int = settings.epochs
