@@ -1,6 +1,6 @@
 # LSE to Text
 
-LSE to Text is a tool for translating Spanish Sign Language (LSE) images to text using deep learning. It provides a simple command line interface (CLI) for training models and running predictions.
+LSE to Text is a tool for translating [Spanish Sign Language (`LSE`)](https://en.wikipedia.org/wiki/Spanish_Sign_Language) images to text using deep learning. It provides a simple command line interface (`CLI`) for training and evaluating models.
 
 ---
 
@@ -8,6 +8,7 @@ LSE to Text is a tool for translating Spanish Sign Language (LSE) images to text
 
 - Train a custom model on Spanish Sign Language alphabet images
 - Predict text from sign language images using a trained model
+- Evaluate model performance using K-Fold Cross Validation
 - Easy CLI for training and inference
 - Configurable training parameters
 
@@ -15,7 +16,7 @@ LSE to Text is a tool for translating Spanish Sign Language (LSE) images to text
 
 ## Requirements
 
-- Python 3.12+
+- [`Python`](https://www.python.org/) 3.12+
 - [`uv`](https://docs.astral.sh/uv/) (for dependency management)
 
 ## Installation
@@ -37,7 +38,7 @@ LSE to Text is a tool for translating Spanish Sign Language (LSE) images to text
 
 ## Usage
 
-The CLI offers two main commands: `train` and `predict`.
+The CLI offers three main commands: `train`, `predict` and `eval`.
 
 ### General CLI
 
@@ -101,6 +102,26 @@ Options:
 
 ```terminal
 uv run src/main.py predict -m model.onnx -p 10
+```
+
+### Evaluate Command
+
+Run a K-Fold Cross Validation evaluation.
+
+```terminal
+Usage: main.py eval [OPTIONS]
+
+Options:
+  --folds       -k      INTEGER  The number of folds for CV [default: 5]
+  --batch-size  -b      INTEGER  Batch size [default: 32]
+  --epochs      -e      INTEGER  Number of train epochs [default: 50]
+  --help        -h               Show this message and exit.
+```
+
+**Example:**
+
+```terminal
+uv run src/main.py eval -k 10 -b 64
 ```
 
 ## Author
