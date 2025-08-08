@@ -1,16 +1,17 @@
-# LSE to Text
+# LSE to Text API
 
-LSE to Text is a tool for translating [Spanish Sign Language (`LSE`)](https://en.wikipedia.org/wiki/Spanish_Sign_Language) images to text using deep learning. It provides a simple command line interface (`CLI`) for training and evaluating models.
+LSE to Text is a REST API for translating [Spanish Sign Language (`LSE`)](https://en.wikipedia.org/wiki/Spanish_Sign_Language) images to text using deep learning. It provides endpoints for training, prediction, and model evaluation, along with a simple web interface for real-time inference.
 
 ---
 
 ## Features
 
-- Train a custom model on Spanish Sign Language alphabet images
-- Predict text from sign language images using a trained model
-- Evaluate model performance using K-Fold Cross Validation
-- Easy CLI for training and inference
-- Configurable training parameters
+- **RESTful API**: A robust API built with FastAPI for LSE translation tasks.
+- **Train**: Train a custom model on the Spanish Sign Language alphabet dataset via the `/train` endpoint.
+- **Predict**: Predict text from sign language images using a trained model via the `/predict` endpoint.
+- **Evaluate**: Evaluate model performance using K-Fold Cross-Validation via the `/eval` endpoint.
+- **Web Interface**: A simple frontend to interact with the API, capture images from a webcam, and get real-time predictions.
+- **Configurable**: Easily configure model and training parameters.
 
 ---
 
@@ -18,6 +19,7 @@ LSE to Text is a tool for translating [Spanish Sign Language (`LSE`)](https://en
 
 - [`Python`](https://www.python.org/) 3.12+
 - [`uv`](https://docs.astral.sh/uv/) (for dependency management)
+- [`onnxruntime`](https://onnxruntime.ai/) and a trained model for prediction.
 
 ## Installation
 
@@ -28,101 +30,131 @@ LSE to Text is a tool for translating [Spanish Sign Language (`LSE`)](https://en
    cd Lse2Text
    ```
 
-2. Run the program (this will install dependencies and create a virtual environment):
+2. Install dependencies and create a virtual environment:
 
    ```terminal
-   uv run src/main.py
+   uv sync
    ```
 
----
+3. Run the application:
 
-## Usage
+   ```terminal
+   uv run uvicorn app.main:app --reload
+   ```
 
-The CLI offers three main commands: `train`, `predict` and `eval`.
-
-### General CLI
-
-```terminal
-Usage: main.py [OPTIONS] COMMAND [ARGS]...
-
-Options:
-  --verbose             -v        Verbose mode
-  --install-completion            Install completion for the current shell.
-  --show-completion               Show completion for the current shell, to copy it or customize the
-                                  installation.
-  --help                -h        Show this message and exit.
-
-Commands:
-  train     Train a model with the given parameters and save it to the given path.
-  predict   Runs inference with the given model.
-  eval      Runs a K-Fold Cross Validation evaluation.
-```
+The API will be available at `http://127.0.0.1:8000`.
 
 ---
 
-### Train Command
+## API Endpoints
 
-Train a model with the given parameters and save it in [`ONNX`](https://onnx.ai/) format.
+The API provides the following endpoints:
 
-```terminal
-Usage: main.py train [OPTIONS]
+### `GET /`
 
-Options:
-  --out-model         -o      TEXT     Model path in ONNX format [default: model.onnx]
-  --epochs            -e      INTEGER  Number of train epochs [default: 50]
-  --batch-size        -b      INTEGER  Batch size [default: 32]
-  --debug             -d               Run in debug mode
-  --metrics-filename  -m      TEXT     Metrics filename without extension [default: None]
-  --use-logger        -l               Use a logger
-  --help              -h               Show this message and exit.
+Serves the main web interface, which allows you to use your webcam to capture an image and send it for prediction.
+
+### `POST /train`
+
+Trains a new model with the given parameters and saves it.
+
+**Request Body:** `application/json`
+
+| Parameter      | Type    | Description                             | Default |
+| -------------- | ------- | --------------------------------------- | ------- |
+| `debug`        | boolean | Run in debug mode (fast dev run).       | `false` |
+| `epochs`       | integer | Number of training epochs.              | `50`    |
+| `batch_size`   | integer | Batch size for training.                | `32`    |
+| `use_logger`   | boolean | Use MLFlow logger.                      | `false` |
+| `save_metrics` | boolean | Save performance metrics to a CSV file. | `true`  |
+| `save_model`   | boolean | Save the trained model in ONNX format.  | `true`  |
+
+**Example Request:**
+
+```bash
+curl -X POST "http://127.0.0.1:8000/train" -H "Content-Type: application/json" -d '{
+  "epochs": 25,
+  "batch_size": 64
+}'
 ```
 
-**Example:**
+**Example Response:**
 
-```terminal
-uv run src/main.py train -o model.onnx -e 20 -b 64
+```json
+{
+  "metrics": [
+    {
+      "test/acc": 0.98,
+      "test/precision": 0.98,
+      "test/recall": 0.98,
+      "test/f1": 0.98
+    }
+  ],
+  "model_path": "saving_models/LseTrasnlator_20250808_120000.onnx",
+  "metrics_file": "metrics/LseTrasnlator_20250808_120000.csv"
+}
+```
+
+### `POST /predict`
+
+Runs inference on an uploaded image file using the latest trained model.
+
+**Request Body:** `multipart/form-data`
+
+- `file`: The image file to be processed.
+
+**Example Request:**
+
+```bash
+curl -X POST "http://127.0.0.1:8000/predict" -H "Content-Type: multipart/form-data" -F "file=@/path/to/your/image.jpg"
+```
+
+**Example Response:**
+
+```json
+{
+  "model": "LseTrasnlator_20250808_120000.onnx",
+  "pred": "A",
+  "logits": [[...]]
+}
+```
+
+### `POST /eval`
+
+Runs a K-Fold Cross-Validation evaluation.
+
+**Request Body:** `application/json`
+
+| Parameter    | Type    | Description                         | Default |
+| ------------ | ------- | ----------------------------------- | ------- |
+| `k`          | integer | The number of folds for CV.         | `5`     |
+| `batch_size` | integer | Batch size for evaluation.          | `32`    |
+| `epochs`     | integer | Number of training epochs per fold. | `50`    |
+
+**Example Request:**
+
+```bash
+curl -X POST "http://127.0.0.1:8000/eval" -H "Content-Type: application/json" -d '{
+  "k": 10,
+  "epochs": 20
+}'
+```
+
+**Example Response:**
+
+```json
+{
+  "results": {
+    "val/loss": 0.1,
+    "val/acc": 0.97,
+    "val/precision": 0.97,
+    "val/recall": 0.97,
+    "val/f1": 0.97
+  }
+}
 ```
 
 ---
-
-### Predict Command
-
-Run inference with the given model.
-
-```terminal
-Usage: main.py predict [OPTIONS]
-
-Options:
-  --model-path  -m      TEXT     Model path [default: model.onnx]
-  --max-preds   -p      INTEGER  Max number of predictions [default: 20]
-  --help        -h               Show this message and exit.
-```
-
-**Example:**
-
-```terminal
-uv run src/main.py predict -m model.onnx -p 10
-```
-
-### Evaluate Command
-
-Run a K-Fold Cross Validation evaluation.
-
-```terminal
-Usage: main.py eval [OPTIONS]
-
-Options:
-  --folds       -k      INTEGER  The number of folds for CV [default: 5]
-  --batch-size  -b      INTEGER  Batch size [default: 32]
-  --epochs      -e      INTEGER  Number of train epochs [default: 50]
-  --help        -h               Show this message and exit.
-```
-
-**Example:**
-
-```terminal
-uv run src/main.py eval -k 10 -b 64
-```
 
 ## Author
 
