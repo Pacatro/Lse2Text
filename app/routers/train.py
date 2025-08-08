@@ -8,8 +8,7 @@ from datetime import datetime
 
 from app.core.config import settings
 from app.core.lse_dm import LseDataModule
-from app.core.engine import Lse2TextModel
-from app.core.model import CnnV1
+from app.core.model import Lse2TextModel, ModelConfig
 from app.models.schemas import TrainRequest
 
 router = APIRouter()
@@ -17,19 +16,7 @@ router = APIRouter()
 
 @router.post("/train")
 async def train(request: TrainRequest):
-    metrics_folder = None
-
-    if request.metrics_filename:
-        Path(settings.metrics_folder).mkdir(parents=True, exist_ok=True)
-        metrics_folder = (
-            Path(settings.metrics_folder) / f"{request.metrics_filename}.csv"
-        )
-
-    cm_img_name = (
-        Path(settings.metrics_folder) / f"{request.metrics_filename}_cm.png"
-        if request.metrics_filename
-        else None
-    )
+    model_config = ModelConfig()
 
     dm = LseDataModule(
         root_dir=settings.dataset_dir,
@@ -37,19 +24,11 @@ async def train(request: TrainRequest):
         batch_size=request.batch_size,
     )
 
-    model_config = {
-        "input_channel": settings.img_channels,
-        "out_channels": settings.classes,
-        "hidden_units": [128, 64, 32],
-        "adapt_size": (4, 4),
-        "p": 0.5,
-    }
+    dm.setup("fit")
 
-    model = Lse2TextModel(
-        model=CnnV1,
-        config=model_config,
-        cm_img_path=cm_img_name,
-    )
+    model = Lse2TextModel(config=model_config, num_classes=len(dm.dataset.classes))
+
+    out_model = f"{model.__class__.__name__}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
     early_stopping = EarlyStopping(
         monitor=settings.monitoring_metric,
@@ -83,28 +62,29 @@ async def train(request: TrainRequest):
     )
 
     trainer.fit(model=model, datamodule=dm)
+
+    if request.debug:
+        return {"message": "Training completed in debug mode"}
+
     metrics = trainer.test(model=model, datamodule=dm)
 
-    if not request.debug and metrics_folder:
+    metrics_folder = None
+    file_path = None
+
+    if request.save_metrics:
+        Path(settings.metrics_folder).mkdir(parents=True, exist_ok=True)
+        metrics_folder = Path(settings.metrics_folder) / f"{out_model}.csv"
         df = pd.DataFrame(metrics, index=["value"]).T
         df.to_csv(metrics_folder)
 
-    out_model = f"{model.model.__class__.__name__}_{datetime.now().timestamp()}.onnx"
-
-    if out_model and not request.debug:
+    if request.save_model:
         Path(settings.models_folder).mkdir(parents=True, exist_ok=True)
-        file_path = Path(settings.models_folder) / out_model
-
-        if file_path.suffix != ".onnx":
-            file_path = file_path.with_suffix(".onnx")
-
-        if settings.verbose:
-            print(f"Saving model to {file_path}")
-
+        file_path = Path(settings.models_folder) / f"{out_model}.onnx"
+        print(f"Saving model to {file_path}")
         model.to_onnx(file_path=file_path, export_params=True)
 
     return {
         "metrics": metrics,
-        "model_path": file_path,
-        "metrics_file": str(metrics_folder) if request.metrics_filename else None,
+        "model_path": file_path if file_path else None,
+        "metrics_file": metrics_folder if metrics_folder else None,
     }

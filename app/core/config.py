@@ -3,7 +3,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Global
-    verbose: bool = False
+    verbose: bool = True
     fast_dev_run: bool = False
     models_folder: str = "saving_models"
 
@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     img_width: int = 224
     img_height: int = 224
     img_channels: int = 1
+
+    # Model config
+    hidden_units: list[int] = [128, 64, 32]
+    adapt_size: tuple[int, int] = (4, 4)
+    p: float = 0.5
 
     # Training
     epochs: int = 50

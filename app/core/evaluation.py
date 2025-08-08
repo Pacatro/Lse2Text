@@ -1,18 +1,16 @@
 from sklearn.model_selection import KFold
 from torch.utils.data import DataLoader, Subset
 import lightning as L
-from typing import Type
-from torch import nn
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 import numpy as np
 
-from app.core.engine import Lse2TextModel
+from app.core.model import Lse2TextModel, ModelConfig
 from app.core.config import settings
 from app.core.lse_dm import LseDataModule
 
 
 def cross_validation(
-    model_cls: Type[nn.Module],
+    model_config: ModelConfig,
     dm: LseDataModule,
     k: int = settings.k,
     batch_size: int = settings.batch_size,
@@ -25,15 +23,8 @@ def cross_validation(
     dm.setup("fit")
 
     ds = dm.dataset
+    num_classes = len(ds.classes)
     idxs = np.arange(len(ds))
-
-    model_config = {
-        "input_channel": settings.img_channels,
-        "out_channels": settings.classes,
-        "hidden_units": [128, 64, 32],
-        "adapt_size": (4, 4),
-        "p": 0.5,
-    }
 
     for fold, (train_idx, val_idx) in enumerate(kf.split(idxs)):
         if settings.verbose:
@@ -49,7 +40,7 @@ def cross_validation(
             ds_val, batch_size=batch_size, shuffle=False, num_workers=4
         )
 
-        model = Lse2TextModel(model=model_cls, config=model_config)
+        model = Lse2TextModel(config=model_config, num_classes=num_classes)
 
         early_stopping = EarlyStopping(
             monitor=settings.monitoring_metric,

@@ -9,11 +9,12 @@ class TrainRequest(BaseModel):
     It includes optional parameters for model output path, number of epochs, batch size, debug mode, metrics filename, and logger usage.
     """
 
+    debug: bool = settings.fast_dev_run
     epochs: int = settings.epochs
     batch_size: int = settings.batch_size
-    debug: bool = settings.fast_dev_run
-    metrics_filename: str | None = None
     use_logger: bool = False
+    save_metrics: bool = True
+    save_model: bool = True
 
 
 class EvalRequest(BaseModel):

@@ -3,9 +3,9 @@ import pandas as pd
 
 from app.core.config import settings
 from app.core.lse_dm import LseDataModule
-from app.core.model import CnnV1
 from app.core.evaluation import cross_validation
 from app.models.schemas import EvalRequest
+from app.core.model import ModelConfig
 
 router = APIRouter()
 
@@ -17,8 +17,10 @@ async def eval(request: EvalRequest):
         image_size=(settings.img_width, settings.img_height),
     )
 
+    model_config = ModelConfig()
+
     results = cross_validation(
-        model_cls=CnnV1,
+        model_config=model_config,
         dm=dm,
         k=request.k,
         batch_size=request.batch_size,

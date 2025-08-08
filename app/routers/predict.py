@@ -30,9 +30,7 @@ def get_last_model(models_folder: str) -> Path:
             status_code=404, detail=f"There are no models in {settings.models_folder}"
         )
 
-    last_model_path = sorted(models, key=lambda f: f.name.split("_")[-1])[-1]
-
-    model_path = Path(settings.models_folder) / last_model_path.name
+    model_path = Path(settings.models_folder) / max(models).name
 
     if not model_path.suffix == ".onnx":
         raise HTTPException(
