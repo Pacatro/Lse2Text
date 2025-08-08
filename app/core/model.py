@@ -24,7 +24,7 @@ class ModelConfig:
     weight_decay: float = 1e-5
 
 
-class Lse2TextModel(L.LightningModule):
+class LseTrasnlator(L.LightningModule):
     def __init__(
         self,
         config: ModelConfig,

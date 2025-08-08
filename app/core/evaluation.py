@@ -4,7 +4,7 @@ import lightning as L
 from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 import numpy as np
 
-from app.core.model import Lse2TextModel, ModelConfig
+from app.core.model import LseTrasnlator, ModelConfig
 from app.core.config import settings
 from app.core.lse_dm import LseDataModule
 
@@ -40,7 +40,7 @@ def cross_validation(
             ds_val, batch_size=batch_size, shuffle=False, num_workers=4
         )
 
-        model = Lse2TextModel(config=model_config, num_classes=num_classes)
+        model = LseTrasnlator(config=model_config, num_classes=num_classes)
 
         early_stopping = EarlyStopping(
             monitor=settings.monitoring_metric,

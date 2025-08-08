@@ -8,7 +8,7 @@ from datetime import datetime
 
 from app.core.config import settings
 from app.core.lse_dm import LseDataModule
-from app.core.model import Lse2TextModel, ModelConfig
+from app.core.model import LseTrasnlator, ModelConfig
 from app.models.schemas import TrainRequest
 
 router = APIRouter()
@@ -26,7 +26,7 @@ async def train(request: TrainRequest):
 
     dm.setup("fit")
 
-    model = Lse2TextModel(config=model_config, num_classes=len(dm.dataset.classes))
+    model = LseTrasnlator(config=model_config, num_classes=len(dm.dataset.classes))
 
     out_model = f"{model.__class__.__name__}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
