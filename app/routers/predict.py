@@ -41,8 +41,8 @@ def get_last_model(models_folder: str) -> Path:
 
 
 @router.post("/predict")
-async def predict(img: UploadFile = File(..., alias="file")) -> JSONResponse:
-    if img is None:
+async def predict(file: UploadFile = File(...), debug: bool = False) -> JSONResponse:
+    if file is None:
         raise HTTPException(
             status_code=400, detail="Image file is required for prediction"
         )
@@ -61,7 +61,7 @@ async def predict(img: UploadFile = File(..., alias="file")) -> JSONResponse:
         ]
     )
 
-    img_content = await img.read()
+    img_content = await file.read()
 
     img_bgr = cv2.imdecode(np.frombuffer(img_content, np.uint8), cv2.IMREAD_COLOR)
 
@@ -70,7 +70,8 @@ async def predict(img: UploadFile = File(..., alias="file")) -> JSONResponse:
 
     crop_img = select_hand(img_bgr, (settings.img_width, settings.img_height))
 
-    cv2.imwrite("tmp.jpg", crop_img)  # For debugging
+    if debug:
+        cv2.imwrite("tmp.jpg", crop_img)  # For debugging
 
     image = Image.fromarray(crop_img).convert("RGB")
 
@@ -103,4 +104,6 @@ async def predict(img: UploadFile = File(..., alias="file")) -> JSONResponse:
 
     assert pred, "There are no predictions"
 
-    return JSONResponse({"pred": classes[pred[0]], "logits": logits.tolist()})
+    return JSONResponse(
+        {"model": model_path.name, "pred": classes[pred[0]], "logits": logits.tolist()}
+    )
