@@ -31,7 +31,7 @@ class Lse2TextModel(L.LightningModule):
         num_classes: int,
     ):
         super().__init__()
-        self.save_hyperparameters(ignore=["cm_img_path"])
+        self.save_hyperparameters()
 
         self.example_input_array = torch.randn(
             (1, settings.img_channels, settings.img_width, settings.img_height)
