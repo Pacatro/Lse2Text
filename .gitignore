@@ -8,6 +8,9 @@ wheels/
 mlruns/
 *.task
 
+# API Testing
+*.cartero
+
 # Virtual environments
 .venv
 
@@ -15,7 +18,8 @@ mlruns/
 data/
 
 # Images
-# *.png
+*.png
+*.jpg
 
 # Models
 *.pt
